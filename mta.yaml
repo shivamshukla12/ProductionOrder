@@ -1,0 +1,71 @@
+---
+_schema-version: '3.1'
+ID: ProductionOrder
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npx -p @sap/cds-dk cds build --production
+modules:
+  - name: ProductionOrder-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm-ci
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+# Resources extracted from CAP configuration
+    - name: ProductionOrder-uaa
+    - name: cis-destination
+    - name: cis-connectivity
+    - name: ProductionOrder-database
+# --------------------- DEPLOYER MODULE ----------------------  
+  - name: ProductionOrder-db-deployer
+# ------------------------------------------------------------ 
+    type: hdb
+    path: gen/db
+    build-parameters:
+      buildpack: https://github.com/cloudfoundry/nodejs-buildpack/releases/download/v1.7.25/nodejs-buildpack-cflinuxfs3-v1.7.25.zip
+    requires:
+      - name: ProductionOrder-database
+resources:
+# ------------------------------------------------------------
+ - name: ProductionOrder-database
+# ------------------------------------------------------------
+   type: com.sap.xs.hdi-container
+   parameters:
+     service: hana
+     service-plan: hdi-shared
+   properties:
+     hdi-service-name: ${service-name}
+# ------------------------------------------------------------
+ - name: cis-destination
+# ------------------------------------------------------------
+   type: org.cloudfoundry.managed-service
+   parameters:
+     service: destination
+     service-plan: lite
+# ------------------------------------------------------------
+ - name: ProductionOrder-uaa
+# ------------------------------------------------------------
+   type: org.cloudfoundry.managed-service
+   parameters:
+     service: xsuaa  # or 'hanatrial' on trial landscapes
+     service-plan: application
+     path: ./xs-security.json
+# ------------------------------------------------------------
+ - name: cis-connectivity
+# ------------------------------------------------------------
+   parameters:
+     service-plan: lite
+     service: connectivity
+   type: org.cloudfoundry.managed-service

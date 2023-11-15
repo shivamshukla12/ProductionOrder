@@ -1,0 +1,7 @@
+{
+    "xsappname": "ProductionOrder",
+    "tenant-mode": "dedicated",
+    "description": "",
+    "scopes": [],
+    "role-templates": []
+  }
